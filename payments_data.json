@@ -1,0 +1,90 @@
+[
+  {
+    "model": "courses.payments",
+    "fields": {
+      "paid_by": 1,
+      "payment_date": "2023-09-20",
+      "course": 1,
+      "lesson": null,
+      "amount": 15000,
+      "payment_way": "cash"
+    }
+  },
+  {
+    "model": "courses.payments",
+    "fields": {
+      "paid_by": 1,
+      "payment_date": "2023-09-25",
+      "course": 1,
+      "lesson": null,
+      "amount": 10000,
+      "payment_way": "transaction"
+    }
+  },
+    {
+    "model": "courses.payments",
+    "fields": {
+      "paid_by": 1,
+      "payment_date": "2023-09-20",
+      "course": 1,
+      "lesson": null,
+      "amount": 12500,
+      "payment_way": "cash"
+    }
+  },
+  {
+    "model": "courses.payments",
+    "fields": {
+      "paid_by": 1,
+      "payment_date": "2023-08-25",
+      "course": 1,
+      "lesson": null,
+      "amount": 11000,
+      "payment_way": "transaction"
+    }
+  },
+    {
+    "model": "courses.payments",
+    "fields": {
+      "paid_by": 1,
+      "payment_date": "2023-08-20",
+      "course": null,
+      "lesson": 1,
+      "amount": 250,
+      "payment_way": "cash"
+    }
+  },
+  {
+    "model": "courses.payments",
+    "fields": {
+      "paid_by": 1,
+      "payment_date": "2023-09-01",
+      "course": null,
+      "lesson": 2,
+      "amount": 400,
+      "payment_way": "cash"
+    }
+  },
+  {
+    "model": "courses.payments",
+    "fields": {
+      "paid_by": 1,
+      "payment_date": "2023-09-15",
+      "course": null,
+      "lesson": 3,
+      "amount": 400,
+      "payment_way": "transaction"
+    }
+  },
+  {
+    "model": "courses.payments",
+    "fields": {
+      "paid_by": 1,
+      "payment_date": "2023-09-17",
+      "course": null,
+      "lesson": 4,
+      "amount": 150,
+      "payment_way": "transaction"
+    }
+  }
+]
