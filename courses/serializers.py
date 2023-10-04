@@ -5,15 +5,25 @@ from courses.models import Lesson, Course, Payments
 
 
 class LessonSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = Lesson
         exclude = ('preview',)
 
 
 class LessonDetailSerializer(serializers.ModelSerializer):
+    author = serializers.SerializerMethodField(read_only=True)
+    course = serializers.SerializerMethodField(read_only=True)
+
+    def get_author(self, obj):
+        return obj.author.email if obj.author else None
+
+    def get_course(self, obj):
+        return obj.course.title if obj.course else None
+
     class Meta:
         model = Lesson
-        fields = ('title', 'description', 'link')
+        fields = ('title', 'description', 'author', 'link', 'course')
 
 
 class CourseDefaultSerializer(serializers.ModelSerializer):
@@ -32,6 +42,10 @@ class CourseListSerializer(serializers.ModelSerializer):
 
 class CourseDetailSerializer(serializers.ModelSerializer):
     lessons_list = LessonDetailSerializer(source='lesson_set', many=True)
+    author = serializers.SerializerMethodField()
+
+    def get_author(self, obj):
+        return obj.author.email if obj.author else None
 
     class Meta:
         model = Course
@@ -52,7 +66,10 @@ class PaymentsForUserSerializer(serializers.ModelSerializer):
         return obj.get_payment_way_display()
 
     def get_paid_for(self, obj):
-        return obj.course.title if obj.course else obj.lesson.title
+        if obj.course:
+            return obj.course.title
+        elif obj.lesson:
+            return obj.lesson.title
 
     class Meta:
         model = Payments
