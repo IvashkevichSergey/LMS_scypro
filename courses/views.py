@@ -1,12 +1,14 @@
 from django.db.models import Count
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import viewsets, generics
+from rest_framework import viewsets, generics, status
 from rest_framework.filters import SearchFilter, OrderingFilter
+from rest_framework.response import Response
 
-from courses.models import Lesson, Course, Payments
+from courses.models import Lesson, Course, Payments, Subscription
+from courses.paginators import SimplePaginator
 from courses.serializers import LessonSerializer, CourseListSerializer, \
     CourseDetailSerializer, PaymentsSerializer, CourseDefaultSerializer, \
-    LessonDetailSerializer
+    LessonDetailSerializer, CourseSubscribeSerializer
 from users.permissions import IsModeratorOrOwner
 
 
@@ -14,6 +16,8 @@ class CourseViewSet(viewsets.ModelViewSet):
     default_serializer = CourseDefaultSerializer
     queryset = Course.objects.annotate(lesson_quantity=Count("lesson"))
     permission_classes = [IsModeratorOrOwner]
+    pagination_class = SimplePaginator
+
     serializers = {
         'list': CourseListSerializer,
         'retrieve': CourseDetailSerializer
@@ -40,6 +44,7 @@ class LessonListAPIView(generics.ListAPIView):
     serializer_class = LessonSerializer
     queryset = Lesson.objects.all()
     permission_classes = [IsModeratorOrOwner]
+    pagination_class = SimplePaginator
 
     def get_queryset(self):
         """Для пользователей, не входящих в группу Модераторов отфильтрованный
@@ -85,3 +90,38 @@ class PaymentsViewSet(viewsets.ModelViewSet):
     filter_backends = [OrderingFilter, SearchFilter, DjangoFilterBackend]
     ordering_fields = ['payment_date']
     filterset_fields = ['lesson', 'course', 'payment_way']
+
+
+class MakeSubscription(generics.CreateAPIView):
+    """Класс используется для добавления/удаления подписки текущего
+    пользователя на выбранный курс"""
+    serializer_class = CourseSubscribeSerializer
+
+    def post(self, request, *args, **kwargs):
+        """Переопределяем метод для вывода кастомного Response и создания
+        объекта Subscription"""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        data = {
+            'user': request.user,
+            'course': Course.objects.get(pk=kwargs.get('pk'))
+        }
+
+        if request.data.get('subscribe') is True:
+            subs = Subscription.objects.filter(**data)
+            if subs:
+                return Response({'message': 'Вы уже подписаны на обновления этого курса!!'},
+                                status=status.HTTP_204_NO_CONTENT)
+            subs = Subscription.objects.create(**data)
+            subs.save()
+            return Response({'message': 'Подписка на обновления курса оформлена!!'},
+                            status=status.HTTP_201_CREATED)
+        else:
+            subs = Subscription.objects.filter(**data)
+            if subs:
+                subs.delete()
+                return Response({'message': 'Подписка на обновления курса отменена!!'},
+                                status=status.HTTP_204_NO_CONTENT)
+            return Response({'message': 'Вы ещё не подписаны на обновления данного курса!!'},
+                            status=status.HTTP_204_NO_CONTENT)

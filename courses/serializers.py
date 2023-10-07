@@ -1,10 +1,12 @@
 from rest_framework import serializers
-from rest_framework import fields, relations
+from rest_framework import fields
 
-from courses.models import Lesson, Course, Payments
+from courses.models import Lesson, Course, Payments, Subscription
+from courses.validators import ValidateURL
 
 
 class LessonSerializer(serializers.ModelSerializer):
+    link = serializers.CharField(validators=[ValidateURL()], required=False)
 
     class Meta:
         model = Lesson
@@ -43,9 +45,17 @@ class CourseListSerializer(serializers.ModelSerializer):
 class CourseDetailSerializer(serializers.ModelSerializer):
     lessons_list = LessonDetailSerializer(source='lesson_set', many=True)
     author = serializers.SerializerMethodField()
+    is_subscribed = serializers.SerializerMethodField(read_only=True)
 
     def get_author(self, obj):
         return obj.author.email if obj.author else None
+
+    def get_is_subscribed(self, obj):
+        subs = Subscription.objects.filter(
+            user=self.context['request'].user,
+            course=obj.pk
+        )
+        return subs.exists()
 
     class Meta:
         model = Course
@@ -74,3 +84,11 @@ class PaymentsForUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = Payments
         fields = ['payment_date', 'amount', 'payment_way', 'paid_for']
+
+
+class CourseSubscribeSerializer(serializers.ModelSerializer):
+    subscribe = serializers.BooleanField(required=True)
+
+    class Meta:
+        model = Subscription
+        fields = ('subscribe',)
