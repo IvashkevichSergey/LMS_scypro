@@ -63,6 +63,8 @@ class CourseDetailSerializer(serializers.ModelSerializer):
 
 
 class PaymentsSerializer(serializers.ModelSerializer):
+    paid_by = serializers.CharField(max_length=50, source='paid_by.username')
+
     class Meta:
         model = Payments
         fields = '__all__'

@@ -8,8 +8,11 @@ from users.models import User
 
 
 class LessonCRUDTestCase(APITestCase):
+    """Класс для тестирования CRUD методов модели Lesson и
+    функционала создания/удаления подписки (модель Subscription)"""
 
     def setUp(self):
+        """Функция создаёт набор объектов перед каждым тестированием"""
         self.client = APIClient()
         self.user = User.objects.create(email='user@test.com', password='test')
         self.client.force_authenticate(user=self.user)
@@ -25,6 +28,7 @@ class LessonCRUDTestCase(APITestCase):
         )
 
     def test_get_lesson(self):
+        """Тест GET запроса"""
         response = self.client.get(
             reverse('courses:lessons_list')
         )
@@ -40,6 +44,7 @@ class LessonCRUDTestCase(APITestCase):
         )
 
     def test_post_lesson(self):
+        """Тест POST запроса"""
         new_obj = {
             'title': 'test',
             'description': 'test_desc'
@@ -61,6 +66,7 @@ class LessonCRUDTestCase(APITestCase):
         )
 
     def test_update_lesson(self):
+        """Тест PUT запроса"""
         new_obj = {
             'title': 'new_title',
         }
@@ -83,6 +89,7 @@ class LessonCRUDTestCase(APITestCase):
         )
 
     def test_validation_url_lesson(self):
+        """Тест PATCH запроса с проверкой работы валидатора на поле link"""
         invalid_url = 'https://anyurl.com/123'
 
         response = self.client.patch(
@@ -100,13 +107,8 @@ class LessonCRUDTestCase(APITestCase):
             {'link': ['нельзя размещать ссылки на ресурсы кроме youtube.com']}
         )
 
-        # with self.assertRaises(ValidationError):
-        #     self.client.patch(
-        #         reverse('courses:lessons_update', args=[self.lesson.pk]),
-        #         {'link': invalid_url}
-        #     )
-
     def test_delete_lesson(self):
+        """Тест DELETE запроса"""
         response = self.client.delete(
             reverse('courses:lessons_delete', args=[self.lesson.pk])
         )
@@ -117,14 +119,27 @@ class LessonCRUDTestCase(APITestCase):
         )
 
     def test_subscription(self):
+        """Тест создания/удаления подписки - модели Subscription"""
         response = self.client.post(
             reverse('courses:course_subscribe', args=[self.course.pk]),
             {'subscribe': True}
         )
-        # print(response.json()) - вылетает с ошибкой
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        self.assertEqual(
+            Subscription.objects.first().course.title,
+            self.course.title
+        )
+
+        response = self.client.post(
+            reverse('courses:course_subscribe', args=[self.course.pk]),
+            {'subscribe': False}
+        )
 
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
-        # TODO: создание объекта класса Subscription не происходит (т.е. не запускает переопределённый
-        #  метод post() класса MakeSubscription) и получаем пустой response (response.json вываливается в ошибку),
-        #  хотя должен быть ответ от сервера {'message': 'Подписка на обновления курса оформлена!!'}
+        self.assertEqual(
+            Subscription.objects.all().count(),
+            0
+        )

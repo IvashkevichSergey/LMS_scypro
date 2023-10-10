@@ -40,7 +40,9 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'users',
     'courses',
+
     'django_filters',
+    'drf_yasg'
 ]
 
 MIDDLEWARE = [
@@ -150,3 +152,7 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 AUTH_USER_MODEL = 'users.User'
+
+# Ключ для работы с API сервиса STRIPE.COM
+STRIPE_API_KEY = 'sk_test_4eC39HqLyjWDarjtT1zdp7dc'
+
