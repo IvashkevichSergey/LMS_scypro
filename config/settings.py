@@ -169,7 +169,7 @@ CELERY_RESULT_BACKEND = 'redis://localhost:6379'
 CELERY_BEAT_SCHEDULE = {
     'task-name': {
         'task': 'users.tasks.check_active_user',
-        'schedule': timedelta(seconds=25),
+        'schedule': timedelta(days=1),
     },
 }
 
