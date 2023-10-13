@@ -9,6 +9,7 @@ https://docs.djangoproject.com/en/4.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
+import os
 from datetime import timedelta
 from pathlib import Path
 
@@ -42,7 +43,9 @@ INSTALLED_APPS = [
     'courses',
 
     'django_filters',
-    'drf_yasg'
+    'drf_yasg',
+    'django_celery_beat',
+    'redis',
 ]
 
 MIDDLEWARE = [
@@ -156,3 +159,23 @@ AUTH_USER_MODEL = 'users.User'
 # Ключ для работы с API сервиса STRIPE.COM
 STRIPE_API_KEY = 'sk_test_4eC39HqLyjWDarjtT1zdp7dc'
 
+# URL-адрес брокера сообщений
+CELERY_BROKER_URL = 'redis://localhost:6379'
+
+# URL-адрес брокера результатов
+CELERY_RESULT_BACKEND = 'redis://localhost:6379'
+
+# Настройки для выполнения периодических задача
+CELERY_BEAT_SCHEDULE = {
+    'task-name': {
+        'task': 'users.tasks.check_active_user',
+        'schedule': timedelta(seconds=25),
+    },
+}
+
+# Настройки для подключения сервиса отправки электронной почты
+EMAIL_HOST = 'smtp.yandex.ru'
+EMAIL_PORT = 465
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+EMAIL_USE_SSL = True

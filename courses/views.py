@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from django.db.models import Count
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, generics, status
@@ -9,6 +11,7 @@ from courses.paginators import SimplePaginator
 from courses.serializers import LessonSerializer, CourseListSerializer, \
     CourseDetailSerializer, PaymentsSerializer, CourseDefaultSerializer, \
     LessonDetailSerializer, CourseSubscribeSerializer
+from courses.services import check_subscription, make_payment
 from users.permissions import IsModeratorOrOwner
 
 
@@ -38,6 +41,15 @@ class CourseViewSet(viewsets.ModelViewSet):
         if not self.request.user.groups.filter(name='Moderator').exists():
             self.queryset = self.queryset.filter(author=self.request.user)
         return super().list(request, *args, **kwargs)
+
+    def perform_update(self, serializer):
+        """При обновлении данных курса запускаем функцию поиска подписок
+        на обновления этого курса в том случае, если с момента последнего
+        обновления прошло более 4 часов"""
+        time_delta = datetime.now(timezone.utc) - self.get_object().updated_at
+        course = serializer.save()
+        if time_delta.seconds // 3600 > 4:
+            return check_subscription(course)
 
 
 class LessonListAPIView(generics.ListAPIView):
@@ -75,6 +87,23 @@ class LessonUpdateAPIView(generics.UpdateAPIView):
     serializer_class = LessonSerializer
     queryset = Lesson.objects.all()
     permission_classes = [IsModeratorOrOwner]
+
+    def perform_update(self, serializer):
+        """При обновлении данных урока -> получаем курс, в состав которого входит
+        этот урок -> проверяем, прошло ли более 4 часов с момента крайнего обновления
+        курса -> запускаем функцию поиска подписок на обновления курса"""
+        course = self.get_object().course
+        # Урок может не иметь связи ни с одним курсом, выполняем проверку
+        if course:
+            time_delta = datetime.now(timezone.utc) - course.updated_at
+            # При обновлении урока обновляем поле updated_at
+            # связанного с уроком курса
+            course.updated_at = datetime.now(timezone.utc)
+            course.save()
+            if time_delta.seconds // 3600 > 4:
+                serializer.save()
+                return check_subscription(course)
+        serializer.save()
 
 
 class LessonDeleteAPIView(generics.DestroyAPIView):
@@ -131,53 +160,6 @@ class CoursePurchase(generics.CreateAPIView):
     """Класс используется для оформления покупки на выбранный курс"""
 
     def post(self, request, *args, **kwargs):
-        import stripe
-        from config.settings import STRIPE_API_KEY
-
-        # Ключ для работы с API сервиса STRIPE.COM
-        stripe.api_key = STRIPE_API_KEY
-        # Оплачиваемый курс
-        course = Course.objects.get(pk=kwargs.get('pk'))
-        # Условная цена за курс
-        price = 2000
-
-        # Создаём объект класса PaymentMethod - способ оплаты
-        pay_method = stripe.PaymentMethod.create(
-            type="card",
-            card={
-                "number": "4242424242424242",
-                "exp_month": 12,
-                "exp_year": 2034,
-                "cvc": "314",
-            },
-        )
-        id_pay_method = pay_method['id']
-
-        # Проводим платёж за курс с автоматическим подтверждением
-        # платежа (confirm=True)
-        new_pay = stripe.PaymentIntent.create(
-            amount=price,
-            currency="usd",
-            payment_method=id_pay_method,
-            automatic_payment_methods={"enabled": True, "allow_redirects": "never"},
-            confirm=True,
-            description=f'Payment for learning course "{course}"'
-        )
-
-        # Сохраняем информацию о платеже в БЛ
-        payment = Payments.objects.create(
-            paid_by=request.user,
-            course=course,
-            amount=price,
-            payment_way='transaction'
-        )
-        payment.save()
-
-        # Выводим ответ в зависимости от успешности проведённого платежа
-        if new_pay['status'] == 'succeeded':
-            return Response({'message': f'Оплата за курс {course.title} выполнена успешно'},
-                            status=status.HTTP_201_CREATED)
-        else:
-            return Response({'message': 'Оплата не прошла, сожалеем!'},
-                            status=status.HTTP_204_NO_CONTENT)
-
+        """При отправке POST запроса выполняется запуск функции, отвечающей
+        за проведение оплаты за выбранный курс"""
+        make_payment(kwargs.get('pk'), request)

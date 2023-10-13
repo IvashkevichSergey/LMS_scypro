@@ -6,7 +6,6 @@ from courses.validators import ValidateURL
 
 
 class LessonSerializer(serializers.ModelSerializer):
-    link = serializers.CharField(validators=[ValidateURL()], required=False)
 
     class Meta:
         model = Lesson
