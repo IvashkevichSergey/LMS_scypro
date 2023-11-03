@@ -84,9 +84,10 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'lms_db',
+        'NAME': 'postgres',
         'USER': 'postgres',
         'PASSWORD': '123',
+        'HOST': 'db'
     }
 }
 
@@ -160,18 +161,8 @@ AUTH_USER_MODEL = 'users.User'
 STRIPE_API_KEY = 'sk_test_4eC39HqLyjWDarjtT1zdp7dc'
 
 # URL-адрес брокера сообщений
-CELERY_BROKER_URL = 'redis://localhost:6379'
+CELERY_BROKER_URL = 'redis://redis:6379/0'
 
-# URL-адрес брокера результатов
-CELERY_RESULT_BACKEND = 'redis://localhost:6379'
-
-# Настройки для выполнения периодических задача
-CELERY_BEAT_SCHEDULE = {
-    'task-name': {
-        'task': 'users.tasks.check_active_user',
-        'schedule': timedelta(days=1),
-    },
-}
 
 # Настройки для подключения сервиса отправки электронной почты
 EMAIL_HOST = 'smtp.yandex.ru'
